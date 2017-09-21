@@ -47,8 +47,8 @@ class Number:
         elif self.x < 0:
             out = out[-x:]
             x = 0
-        elif self.x > width - len(out):
-            out = out[:len(out) + width - x]
+        elif self.x >= width - len(out):
+            out = out[:width - x]
 
         screen.addstr(y, x, out, self.flag())
 
