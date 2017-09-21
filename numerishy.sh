@@ -1,0 +1,171 @@
+#! /bin/env python3
+
+import curses
+import time
+import random
+from curses import wrapper
+from math import floor
+
+global FPS, MAX_SPEED, OFF_START, SPAWN_R
+FPS = 20
+MAX_SPEED = 15
+OFF_START = 5
+SPAWN_R = 10
+
+
+class Number:
+    def flag(self):
+        return 0
+
+    def __init__(self, size, x, y, speed=[0, 0]):
+        self.size = size
+        self.x = floor(x)
+        self.y = floor(y)
+        self.real_x = x
+        self.real_y = y
+        self.speed = speed
+        self.last_update = time.time()
+
+    def set_xy(self, x=None, y=None):
+        if x is not None:
+            self.x = x
+            self.real_x = x
+        if y is not None:
+            self.y = y
+            self.real_y = y
+
+    def grow(self, n):
+        self.size += n
+
+    def draw(self, screen):
+        x, y = self.x, self.y
+        out = str(self.size)
+        if self.x <= -len(out) or self.x > width:
+            return
+        elif self.y < 0 or self.y > height:
+            return
+        elif self.x < 0:
+            out = out[-x:]
+            x = 0
+        elif self.x > width - len(out):
+            out = out[:len(out) + width - x]
+
+        screen.addstr(y, x, out, self.flag())
+
+    def update(self):
+        self.move()
+
+    def move(self):
+        self.real_x += self.speed[0] * (time.time() - self.last_update)
+        self.x = floor(self.real_x)
+        self.real_y += self.speed[1] * (time.time() - self.last_update)
+        self.y = floor(self.real_y)
+        self.last_update = time.time()
+
+    def __and__(self, other):
+        if not isinstance(other, Number):
+            assert TypeError("Collision is valid only between Numbers.")
+        elif other.y != self.y:
+            return False
+        elif other.x+len(str(other.size)) <= self.x or self.x + len(str(self.size)) <= other.x:
+            return False
+        else:
+            return True
+
+
+class Player(Number):
+    def flag(self):
+        return curses.color_pair(1)
+
+    def move(self, x=None, y=None):
+        if x is None and y is None:
+            super().move()
+        else:
+            if not x: x = 0
+            if not y: y = 0
+            self.real_x += int(x)
+            self.real_y += int(y)
+            self.x = floor(self.real_x)
+            self.y = floor(self.real_y)
+
+        if self.x < 0:
+            self.set_xy(x=0)
+        elif self.x > width - len(str(self.size)):
+            self.set_xy(x=width - len(str(self.size)))
+
+        if self.y < 0:
+            self.set_xy(y=0)
+        elif self.y > height:
+            self.set_xy(y=height)
+
+
+def main(stdscr):
+
+    curses.curs_set(0)
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+
+    global SPAWN_R
+    global stdscr_glb
+    stdscr_glb = stdscr
+    global height, width
+    height, width = stdscr.getmaxyx()
+    height -= 1
+    width -= 1
+    player = Player(10, 15, 20, [0, 0])
+    enemies = []
+    stdscr.nodelay(True)
+    last_gen = time.time()
+    while True:
+
+        timer = time.time()
+        key = stdscr.getch()
+        if key == ord("q"):
+            quit()
+        if key == curses.KEY_LEFT:
+            player.move(x=-1)
+        elif key == curses.KEY_RIGHT:
+            player.move(x=1)
+
+        if key == curses.KEY_DOWN:
+            player.move(y=1)
+        elif key == curses.KEY_UP:
+            player.move(y=-1)
+
+        if key == ord("k"):
+            SPAWN_R /= 1.5
+        elif key == ord("j"):
+            SPAWN_R *= 1.5
+        SPAWN_R = max(SPAWN_R, 0.1)
+        if (time.time()-last_gen)/SPAWN_R>random.random():
+            dir = random.random()>0.5
+            enemies.append(Number(floor(random.random()*100)+1, -OFF_START if dir else width+OFF_START, floor(random.random()*height), [(int(dir)*2-1)*random.random()*20, 0]))
+            last_gen = time.time()
+
+        player.update()
+        for enemy in enemies[:]:
+             enemy.update()
+             if enemy & player:
+                 if player.size>enemy.size:
+                    del enemies[enemies.index(enemy)]
+                    player.grow(1)
+                 else:
+                     return
+             if enemy.x < -OFF_START or enemy.x>width+OFF_START:
+                 del enemies[enemies.index(enemy)]
+
+
+
+        stdscr.clear()
+        player.draw(stdscr)
+        for enemy in enemies:
+            enemy.draw(stdscr)
+
+        stdscr.refresh()
+        time.sleep(max(0, 1. / FPS + timer - time.time()))
+
+
+wrapper(main)
+print("############")
+print("#Game over!#")
+print("############")
