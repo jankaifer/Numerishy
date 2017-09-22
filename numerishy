@@ -141,7 +141,7 @@ def main(stdscr):
         SPAWN_R = max(SPAWN_R, 0.1)
         if (time.time()-last_gen)/SPAWN_R>random.random():
             dir = random.random()>0.5
-            enemies.append(Number(floor(random.random()*100)+1, -OFF_START if dir else width+OFF_START, floor(random.random()*height), [(int(dir)*2-1)*random.random()*20, 0]))
+            enemies.append(Number(floor(random.random()*100)+1, -OFF_START if dir else width+OFF_START, floor(random.random()*height), [(int(dir)*2-1)*(5+random.random()*20), 0]))
             last_gen = time.time()
 
         player.update()
