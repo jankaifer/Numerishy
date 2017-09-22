@@ -120,6 +120,8 @@ def main(stdscr):
 
         timer = time.time()
         key = stdscr.getch()
+        curses.flushinp()
+
         if key == ord("q"):
             quit()
         if key == curses.KEY_LEFT:
