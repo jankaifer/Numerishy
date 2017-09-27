@@ -6,7 +6,6 @@ import random
 from curses import wrapper
 from math import floor
 
-global FPS, MAX_SPEED, OFF_START, SPAWN_R
 FPS = 20
 MAX_SPEED = 15
 OFF_START = 5
@@ -67,7 +66,7 @@ class Number:
             assert TypeError("Collision is valid only between Numbers.")
         elif other.y != self.y:
             return False
-        elif other.x+len(str(other.size)) <= self.x or self.x + len(str(self.size)) <= other.x:
+        elif other.x + len(str(other.size)) <= self.x or self.x + len(str(self.size)) <= other.x:
             return False
         else:
             return True
@@ -100,7 +99,6 @@ class Player(Number):
 
 
 def main(stdscr):
-
     curses.curs_set(0)
     curses.start_color()
     curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
@@ -125,9 +123,9 @@ def main(stdscr):
         if key == ord("q"):
             quit()
         if key == curses.KEY_LEFT:
-            player.move(x=-1)
+            player.move(x=-2)
         elif key == curses.KEY_RIGHT:
-            player.move(x=1)
+            player.move(x=2)
 
         if key == curses.KEY_DOWN:
             player.move(y=1)
@@ -139,24 +137,24 @@ def main(stdscr):
         elif key == ord("j"):
             SPAWN_R *= 1.5
         SPAWN_R = max(SPAWN_R, 0.1)
-        if (time.time()-last_gen)/SPAWN_R>random.random():
-            dir = random.random()>0.5
-            enemies.append(Number(floor(random.random()*100)+1, -OFF_START if dir else width+OFF_START, floor(random.random()*height), [(int(dir)*2-1)*(5+random.random()*20), 0]))
+        if (time.time() - last_gen) / SPAWN_R > random.random():
+            dir = random.random() > 0.5
+            enemies.append(Number(floor(random.random() * 100) + 1, -OFF_START if dir else width + OFF_START,
+                                  floor(random.random() * height),
+                                  [(int(dir) * 2 - 1) * (5 + random.random() * 20), 0]))
             last_gen = time.time()
 
         player.update()
         for enemy in enemies[:]:
-             enemy.update()
-             if enemy & player:
-                 if player.size>enemy.size:
+            enemy.update()
+            if enemy & player:
+                if player.size > enemy.size:
                     del enemies[enemies.index(enemy)]
                     player.grow(1)
-                 else:
-                     return
-             if enemy.x < -OFF_START or enemy.x>width+OFF_START:
-                 del enemies[enemies.index(enemy)]
-
-
+                else:
+                    return
+            if enemy.x < -OFF_START or enemy.x > width + OFF_START:
+                del enemies[enemies.index(enemy)]
 
         stdscr.clear()
         player.draw(stdscr)
