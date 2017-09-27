@@ -148,7 +148,7 @@ def main(stdscr):
         for enemy in enemies[:]:
             enemy.update()
             if enemy & player:
-                if player.size > enemy.size:
+                if player.size > enemy.size or (player.size == enemy.size and random.random() > 0.5):
                     del enemies[enemies.index(enemy)]
                     player.grow(1)
                 else:
