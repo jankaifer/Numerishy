@@ -1,172 +1,134 @@
 #! /bin/env python3
 
-import curses
-import time
-import random
-from curses import wrapper
+from graphic import Display
+from physics import Numb
+from time import sleep, time
+from random import random
 from math import floor
 
-FPS = 20
-MAX_SPEED = 15
-OFF_START = 5
-SPAWN_R = 10
+SPAWN_RATE = 5
+KEY_LASTS = 0.1
+PLAYER_SPEED = 10
+
+debug = []
+
+class GameEnded(Exception):
+    pass
+
+class YouDied(GameEnded):
+    def __init__(self, score, message="You have died."):
+        message += "\nAnd achieved: %s" % str(score)
+        super().__init__(message)
 
 
-class Number:
-    def flag(self):
-        return 0
-
-    def __init__(self, size, x, y, speed=[0, 0]):
-        self.size = size
-        self.x = floor(x)
-        self.y = floor(y)
-        self.real_x = x
-        self.real_y = y
-        self.speed = speed
-        self.last_update = time.time()
-
-    def set_xy(self, x=None, y=None):
-        if x is not None:
-            self.x = x
-            self.real_x = x
-        if y is not None:
-            self.y = y
-            self.real_y = y
-
-    def grow(self, n):
-        self.size += n
-
-    def draw(self, screen):
-        x, y = self.x, self.y
-        out = str(self.size)
-        if self.x <= -len(out) or self.x > width:
-            return
-        elif self.y < 0 or self.y > height:
-            return
-        elif self.x < 0:
-            out = out[-x:]
-            x = 0
-        elif self.x >= width - len(out):
-            out = out[:width - x]
-
-        screen.addstr(y, x, out, self.flag())
-
-    def update(self):
-        self.move()
-
-    def move(self):
-        self.real_x += self.speed[0] * (time.time() - self.last_update)
-        self.x = floor(self.real_x)
-        self.real_y += self.speed[1] * (time.time() - self.last_update)
-        self.y = floor(self.real_y)
-        self.last_update = time.time()
-
-    def __and__(self, other):
-        if not isinstance(other, Number):
-            assert TypeError("Collision is valid only between Numbers.")
-        elif other.y != self.y:
-            return False
-        elif other.x + len(str(other.size)) <= self.x or self.x + len(str(self.size)) <= other.x:
-            return False
-        else:
-            return True
-
-
-class Player(Number):
-    def flag(self):
-        return curses.color_pair(1)
-
-    def move(self, x=None, y=None):
-        if x is None and y is None:
-            super().move()
-        else:
-            if not x: x = 0
-            if not y: y = 0
-            self.real_x += int(x)
-            self.real_y += int(y)
-            self.x = floor(self.real_x)
-            self.y = floor(self.real_y)
-
-        if self.x < 0:
-            self.set_xy(x=0)
-        elif self.x > width - len(str(self.size)):
-            self.set_xy(x=width - len(str(self.size)))
-
-        if self.y < 0:
-            self.set_xy(y=0)
-        elif self.y > height:
-            self.set_xy(y=height)
-
-
-def main(stdscr):
-    curses.curs_set(0)
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-
-    global SPAWN_R
-    global stdscr_glb
-    stdscr_glb = stdscr
-    global height, width
-    height, width = stdscr.getmaxyx()
-    height -= 1
-    width -= 1
-    player = Player(10, 15, 20, [0, 0])
+def main(disp):
+    
+    player = Numb(10, disp.width//2, disp.height//2)
     enemies = []
-    stdscr.nodelay(True)
-    last_gen = time.time()
+    keys_pressed = {}
+    moving = {"up":    False,
+              "down":  False,
+              "left":  False,
+              "right": False}
+    
+    last_spawn = time()
+    
     while True:
+        
+        key = disp.get_key()
+        if key in keys_pressed:
+            keys_pressed[key][0] = time() + KEY_LASTS
+        else:
+            keys_pressed[key] = [time()+KEY_LASTS, lambda:None]
 
-        timer = time.time()
-        key = stdscr.getch()
-        curses.flushinp()
+        if key in ("left", "a", "j"):
+            if not moving["left"]:
+                player.change_speed(x=-2*PLAYER_SPEED)
+                keys_pressed[key][1] = lambda: (player.change_speed(x= 2*PLAYER_SPEED), moving.__setitem__("left", False))
+                moving["left"] = True
 
-        if key == ord("q"):
-            quit()
-        if key == curses.KEY_LEFT:
-            player.move(x=-2)
-        elif key == curses.KEY_RIGHT:
-            player.move(x=2)
+        elif key in ("right", "d", "l"):
+            if not moving["right"]:
+                player.change_speed(x= 2*PLAYER_SPEED)
+                keys_pressed[key][1] = lambda: (player.change_speed(x=-2*PLAYER_SPEED), moving.__setitem__("right", False))
+                moving["right"] = True
 
-        if key == curses.KEY_DOWN:
-            player.move(y=1)
-        elif key == curses.KEY_UP:
-            player.move(y=-1)
+        elif key in ("up", "w", "i"):
+            if not moving["up"]:
+                player.change_speed(y=-PLAYER_SPEED)
+                keys_pressed[key][1] = lambda: (player.change_speed(y= PLAYER_SPEED), moving.__setitem__("up", False))
+                moving["up"] = True
 
-        if key == ord("k"):
-            SPAWN_R /= 1.5
-        elif key == ord("j"):
-            SPAWN_R *= 1.5
-        SPAWN_R = max(SPAWN_R, 0.1)
-        if (time.time() - last_gen) / SPAWN_R > random.random():
-            dir = random.random() > 0.5
-            enemies.append(Number(floor(random.random() * 100) + 1, -OFF_START if dir else width + OFF_START,
-                                  floor(random.random() * height),
-                                  [(int(dir) * 2 - 1) * (5 + random.random() * 20), 0]))
-            last_gen = time.time()
+        elif key in ("down", "s", "k"):
+            if not moving["down"]:
+                player.change_speed(y= PLAYER_SPEED)
+                keys_pressed[key][1] = lambda: (player.change_speed(y=-PLAYER_SPEED), moving.__setitem__("down", False))
+                moving["down"] = True
 
-        player.update()
-        for enemy in enemies[:]:
-            enemy.update()
-            if enemy & player:
-                if player.size > enemy.size or (player.size == enemy.size and random.random() > 0.5):
-                    del enemies[enemies.index(enemy)]
-                    player.grow(1)
-                else:
-                    return
-            if enemy.x < -OFF_START or enemy.x > width + OFF_START:
-                del enemies[enemies.index(enemy)]
 
-        stdscr.clear()
-        player.draw(stdscr)
+        elif key == "q":
+            raise KeyboardInterrupt
+
+        keys_to_delete = []
+        for key in keys_pressed:
+            if keys_pressed[key][0] < time():
+                keys_pressed[key][1]()
+                keys_to_delete.append(key) 
+        for key in keys_to_delete:
+            del keys_pressed[key]
+        
+        
+        while time() - last_spawn > 1/SPAWN_RATE:
+            last_spawn += 1/SPAWN_RATE
+
+            side = random() > 0.5
+            size = floor(random()*5*player.items)
+            enemies.append(Numb(size,-len(str(size)) if not side else disp.width+1, floor(random()*disp.height), speed=((floor(random()*PLAYER_SPEED*2)+5) * (-1 if side else 1), 0)))
+        
+
+
+
+
+
+        player.move()
+        player.check_board(disp)
         for enemy in enemies:
-            enemy.draw(stdscr)
+            enemy.move()
+            if enemy & player:
+                if enemy < player or (enemy == player and random()<0.5):
+                    del enemies[enemies.index(enemy)]
+                    items = enemy.die()
+                    debug.append(items)
+                    player.eat(items)
+                else:
+                    raise YouDied(player.items)
 
-        stdscr.refresh()
-        time.sleep(max(0, 1. / FPS + timer - time.time()))
+        
+        
+            
+        
+        
+        for enemy in enemies:
+            enemy.show(disp)
+
+        player.show(disp)
+        
+        disp.refresh()
 
 
-wrapper(main)
-print("############")
-print("#Game over!#")
-print("############")
-input("Press Enter to continue ...")
+disp = Display()
+try:
+    disp.run(main)
+except GameEnded:
+    text = "Game Over!" 
+    print("#" * (len(text)+4))
+    print("# %s #" % text)
+    print("#" * (len(text)+4))
+    
+    print()
+    input("Hit enter to continue ...")
+except KeyboardInterrupt:
+    for msg in debug: print(msg)
+    print()
+
+
