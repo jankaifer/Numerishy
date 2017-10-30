@@ -10,7 +10,6 @@ SPAWN_RATE = 5
 KEY_LASTS = 0.1
 PLAYER_SPEED = 10
 
-debug = []
 
 class GameEnded(Exception):
     pass
@@ -23,7 +22,7 @@ class YouDied(GameEnded):
 
 def main(disp):
     
-    player = Numb(10, disp.width//2, disp.height//2)
+    player = Numb(10, disp.width//2, disp.height//2, flag=disp.get_color(("green", "black")))
     enemies = []
     keys_pressed = {}
     moving = {"up":    False,
@@ -98,7 +97,6 @@ def main(disp):
                 if enemy < player or (enemy == player and random()<0.5):
                     del enemies[enemies.index(enemy)]
                     items = enemy.die()
-                    debug.append(items)
                     player.eat(items)
                 else:
                     raise YouDied(player.items)
@@ -119,7 +117,7 @@ def main(disp):
 disp = Display()
 try:
     disp.run(main)
-except GameEnded:
+except (GameEnded, KeyboardInterrupt):
     text = "Game Over!" 
     print("#" * (len(text)+4))
     print("# %s #" % text)
@@ -127,8 +125,5 @@ except GameEnded:
     
     print()
     input("Hit enter to continue ...")
-except KeyboardInterrupt:
-    for msg in debug: print(msg)
-    print()
 
 
