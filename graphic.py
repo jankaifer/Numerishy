@@ -64,11 +64,10 @@ class Display:
         self.screen_map = self.new_screen_map
         self.clear_new_map()
     
-    def show(self, x, y, text, flag=0, debug={"show":[]}):
-        debug["show"].append(str((x,y)))
+    def show(self, x, y, text, flag=0):
         text = text
         i = 0
-        if x<0:
+        if x<0 and -x<len(text):
             text = text[min(-x, len(text)-1):]
             x=0
         while 0 <= x+i < self.width and i < len(text) and 0 <= y < self.height:

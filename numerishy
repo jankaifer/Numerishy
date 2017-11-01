@@ -5,6 +5,14 @@ from physics import Numb
 from time import sleep, time
 from random import random, choice
 from math import floor
+from sys import argv
+
+if "-h" in argv or "--help" in argv:
+    print("Usage: nummerishy [OPTIONS]\n" + \
+          "It's best game ever!!!\n" + \
+          "\n" + \
+          "  -t, --titles\t\tfor titles mode\n")
+    exit()
 
 SPAWN_RATE = 5
 KEY_LASTS = 0.1
@@ -30,6 +38,9 @@ class WrongTitle(TypeError):
     pass
 
 class Guy(Numb):
+    default_max_enemy = +3
+    default_min_enemy = -2
+
     def __init__(self, items=2, x=0, y=0, flag=0, speed=(0, 0)):
         super().__init__(items=items, x=x, y=y, flag=flag, speed=speed)
         
@@ -70,8 +81,10 @@ class Guy(Numb):
             
 
 
-
+if "-t" in argv or "--titles" in argv:
 Game_obj = Guy
+else:
+    Game_obj = Numb
 
 def main(disp):
     
@@ -134,8 +147,7 @@ def main(disp):
             last_spawn += 1/SPAWN_RATE
 
             side = random() > 0.5
-            size = floor(random()*5-2+player.get_size())
-            disp.show(0,0, str(size))
+            size = floor(random()*(Game_obj.default_max_enemy-Game_obj.default_min_enemy)+Game_obj.default_min_enemy+player.get_size())
 
             enemies.append(Game_obj(items=size,x=-len(str(size)) if not side else disp.width+1, y=floor(random()*disp.height), speed=((floor(random()*PLAYER_SPEED*2)+5) * (-1 if side else 1), 0)))
 

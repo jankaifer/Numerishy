@@ -4,7 +4,10 @@ from time import time
 from math import floor
 
 class Numb:
-    def __init__(self, items=1, x=0, y=0, flag=0, speed=(0, 0)):
+    default_max_enemy = +50
+    default_min_enemy = -10
+    
+    def __init__(self, items=10, x=0, y=0, flag=0, speed=(0, 0)):
         self.items = items
         self.x, self.y = x, y
         self.real_x, self.real_y = x, y
@@ -131,7 +134,7 @@ class Numb:
         self.update_xy()
     
     def get_size(self):
-        return len(self.items)
+        return self.items
         
 
         
