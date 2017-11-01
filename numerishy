@@ -11,6 +11,7 @@ if "-h" in argv or "--help" in argv:
     print("Usage: nummerishy [OPTIONS]\n" + \
           "It's best game ever!!!\n" + \
           "\n" + \
+          "  -h, --help\t\tprints this message and exits\n" + \
           "  -t, --titles\t\tfor titles mode\n")
     exit()
 
@@ -82,7 +83,7 @@ class Guy(Numb):
 
 
 if "-t" in argv or "--titles" in argv:
-Game_obj = Guy
+    Game_obj = Guy
 else:
     Game_obj = Numb
 
