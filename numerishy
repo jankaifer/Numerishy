@@ -134,7 +134,7 @@ def main(disp):
             last_spawn += 1/SPAWN_RATE
 
             side = random() > 0.5
-            size = floor(random()*5*player.get_size())
+            size = floor(random()*5-2+player.get_size())
             disp.show(0,0, str(size))
 
             enemies.append(Game_obj(items=size,x=-len(str(size)) if not side else disp.width+1, y=floor(random()*disp.height), speed=((floor(random()*PLAYER_SPEED*2)+5) * (-1 if side else 1), 0)))
