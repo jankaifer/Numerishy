@@ -13,7 +13,7 @@ class Numb:
         self.speed_y = speed[1]
         self.last_moved = time()
 
-    def __and__(self, other):
+    def __and__(self, other, second=False):
         if not isinstance(other, Numb):
             raise TypeError("Trying to test collision with wrong object.")
         else:
@@ -29,28 +29,33 @@ class Numb:
             omaxy = max(opos1[1], opos2[1]) 
             ominx = min(opos1[0], opos2[0]) 
             ominy = min(opos1[1], opos2[1]) 
+
             return (ominx<=sminx<=omaxx and ominy<=sminy<=omaxy) or \
                    (ominx<=sminx<=omaxx and ominy<=smaxy<=omaxy) or \
                    (ominx<=smaxx<=omaxx and ominy<=sminy<=omaxy) or \
-                   (ominx<=smaxx<=omaxx and ominy<=smaxy<=omaxy)
+                   (ominx<=smaxx<=omaxx and ominy<=smaxy<=omaxy) or \
+                                                                    \
+                   (sminx<=ominx<=smaxx and sminy<=ominy<=smaxy) or \
+                   (sminx<=ominx<=smaxx and sminy<=omaxy<=smaxy) or \
+                   (sminx<=omaxx<=smaxx and sminy<=ominy<=smaxy) or \
+                   (sminx<=omaxx<=smaxx and sminy<=omaxy<=smaxy)
+                    
     
     def __lt__(self, other):
-        return self.items <  other.items
+        return self.get_size() <  other.get_size()
+        
     
     def __le__(self, other):
-        return self.items <= other.items
-    
-    def __eq__(self, other):
-        return self.items == other.items and self.real_x == other.real_x and self.real_y == other.real_y and self.render() == other.render()
+        return self.get_size() <= other.get_size()
     
     def __ne__(self, other):
-        return self.items != other.items
+        return self.get_size() != other.get_size()
     
     def __ge__(self, other):
-        return self.items >= other.items
+        return self.get_size() >= other.get_size()
     
     def __gt__(self, other):
-        return self.items >  other.items
+        return self.get_size() >  other.get_size()
     
 
     
@@ -124,6 +129,9 @@ class Numb:
         if down >= disp.height:
             self.real_y = self.y + disp.height - 1 - down
         self.update_xy()
+    
+    def get_size(self):
+        return len(self.items)
         
 
         

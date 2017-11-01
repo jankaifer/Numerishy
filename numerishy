@@ -3,13 +3,20 @@
 from graphic import Display
 from physics import Numb
 from time import sleep, time
-from random import random
+from random import random, choice
 from math import floor
 
 SPAWN_RATE = 5
 KEY_LASTS = 0.1
 PLAYER_SPEED = 10
 
+debug = {"show": []}
+
+titles_before = ["Bc.", "BcA.", "Ing.", "Ing.arch.", "MUDr.", "MVDr.", "MgA.", "Mgr.", "JUDr.", "PhDr.", "PharmDr.", "ThLic.", "ThDr.", "PaedDr.", "Dr.", "RNDr.", "doc.", "prof."]
+titles_after = ["Ph.D.", "Th.D.", "CSc.", "DrSc.", "dr.h.c.", "DiS."]
+titles = titles_before + titles_after
+
+names = ["Bob Bug", "Alex Smith", "Will White", "Andrew Ender", "Steve New", "James Smith", "Maria Garcia", "James Johnson", "Carson Stanford", "Casey Samuel", "Elias Kimberly", "Raven Travis"]
 
 class GameEnded(Exception):
     pass
@@ -19,10 +26,56 @@ class YouDied(GameEnded):
         message += "\nAnd achieved: %s" % str(score)
         super().__init__(message)
 
+class WrongTitle(TypeError):
+    pass
+
+class Guy(Numb):
+    def __init__(self, items=2, x=0, y=0, flag=0, speed=(0, 0)):
+        super().__init__(items=items, x=x, y=y, flag=flag, speed=speed)
+        
+        self.name = choice(names)
+        
+        rank = self.items
+        self.items = set()
+        while len(self.items) < min(rank, len(set(titles))):
+            title = choice(titles)
+            if not title in self.items:
+                self.items.add(title)
+
+    def render(self):
+        before = ""
+        after = ""
+        for title in self.items:
+            if title in titles_before:
+                if before:
+                    before += ", "
+                before += title
+            elif title in titles_after:
+                after += ", " + title
+            else:
+                raise WrongTitle("'%s'" % title)
+        if before:
+            before += " "  
+        return ("%s%s%s" % (before, self.name, after))
+
+    def die(self):
+        return self.items
+    
+    def eat(self, items):
+        self.items |= items
+
+    def get_size(self):
+        return len(self.items)
+            
+            
+
+
+
+Game_obj = Guy
 
 def main(disp):
     
-    player = Numb(10, disp.width//2, disp.height//2, flag=disp.get_color(("green", "black")))
+    player = Game_obj(x=disp.width//2, y=disp.height//2, flag=disp.get_color(("green", "black")))
     enemies = []
     keys_pressed = {}
     moving = {"up":    False,
@@ -81,9 +134,14 @@ def main(disp):
             last_spawn += 1/SPAWN_RATE
 
             side = random() > 0.5
-            size = floor(random()*5*player.items)
-            enemies.append(Numb(size,-len(str(size)) if not side else disp.width+1, floor(random()*disp.height), speed=((floor(random()*PLAYER_SPEED*2)+5) * (-1 if side else 1), 0)))
-        
+            size = floor(random()*5*player.get_size())
+            disp.show(0,0, str(size))
+
+            enemies.append(Game_obj(items=size,x=-len(str(size)) if not side else disp.width+1, y=floor(random()*disp.height), speed=((floor(random()*PLAYER_SPEED*2)+5) * (-1 if side else 1), 0)))
+
+            if not side:
+                (x1, y1), (x2, y2) = enemies[-1].get_hitbox()
+                enemies[-1].change_xy(x=-max(x1, x2)-1)
 
 
 
@@ -94,12 +152,12 @@ def main(disp):
         for enemy in enemies:
             enemy.move()
             if enemy & player:
-                if enemy < player or (enemy == player and random()<0.5):
+                if enemy < player or (not enemy != player and random()<0.5):
                     del enemies[enemies.index(enemy)]
                     items = enemy.die()
                     player.eat(items)
                 else:
-                    raise YouDied(player.items)
+                    raise YouDied(player.get_size())
 
         
         
@@ -108,6 +166,7 @@ def main(disp):
         
         for enemy in enemies:
             enemy.show(disp)
+        if enemies: disp.show(0, 0, str((enemies[-1].x, enemies[-1].y)))
 
         player.show(disp)
         
@@ -122,7 +181,8 @@ except (GameEnded, KeyboardInterrupt):
     print("#" * (len(text)+4))
     print("# %s #" % text)
     print("#" * (len(text)+4))
-    
+    print()
+    for el in debug["show"]: print(el)
     print()
     input("Hit enter to continue ...")
 
